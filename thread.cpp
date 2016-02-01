@@ -50,7 +50,7 @@ int main()
     sem_init(&full, PTHREAD_PROCESS_PRIVATE, 0);
     sem_init(&empty, PTHREAD_PROCESS_PRIVATE, NQUEUE);
 
-    for (int i = 0; i < NTHREADS; i++)
+    for (int i = 0; i < NQUEUE; i++)
     {
         sockqueue.push(i);
     }
