@@ -16,17 +16,12 @@ class ThreadQueue
 	{
 		int rval = stlqueue.front();
 		stlqueue.pop();
-		return rval;
+		return (rval);
 	}
 } sockqueue;
 
 void *howdy(void *arg)
 {
-	sock = dequeue();
-	Read Request
-	write response
-	close
-
 	int threadId;
 	threadId = (long) arg;
 	printf("Hi %d\n", threadId);
@@ -49,11 +44,11 @@ int main()
 	for(threadid = 0; threadid < NTHREADS; threadid++)
 	{
 		pthread_create(&threads[threadid], NULL, howdy, (void *) threadid);
-	}
+	}/*
 	for(;;)
 	{
 		fd = accept
 		enqueue(fd)
-	}	
+	}	*/
 	pthread_exit(NULL);
 }

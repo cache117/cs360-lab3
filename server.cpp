@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <pthread.h>
 
 
 #define SOCKET_ERROR        -1
