@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <queue>
 #include <iostream>
+#include <semaphore>
 
 sem_t empty, full, mutex;
 class ThreadQueue
 {
-    std: queue<int>stlqueue;
+    std::queue <int> stlqueue;
 public:
     void push(int sock)
     {
@@ -32,9 +33,11 @@ public:
 
 void *howdy(void *arg)
 {
-    int threadId;
-    threadId = (long) arg;
-    printf("Hi %d\n", threadId);
+    for (;;)
+    {
+        std::cout << "GOT" << sockqueue.pop() << std::endl;
+    }
+
 }
 
 int main()
@@ -46,7 +49,6 @@ int main()
     sem_init(&mutex, PTHREAD_PROCESS_PRIVATE, 1);
     sem_init(&full, PTHREAD_PROCESS_PRIVATE, 0);
     sem_init(&empty, PTHREAD_PROCESS_PRIVATE, NQUEUE);
-
 
     for (int i = 0; i < NTHREADS; i++)
     {
