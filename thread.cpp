@@ -54,14 +54,9 @@ int main()
     {
         sockqueue.push(i);
     }
-    for (threadid = 0; threadid < NTHREADS; threadid++)
+    for (threadid = 0; threadid < NQUEUE; threadid++)
     {
         pthread_create(&threads[threadid], NULL, howdy, (void *) threadid);
-    }/*
-	for(;;)
-	{
-		fd = accept
-		enqueue(fd)
-	}	*/
+    }
     pthread_exit(NULL);
 }
