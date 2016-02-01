@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <queue>
 #include <iostream>
-#include <semaphore>
+#include <semaphore.h>
 
 sem_t empty, full, mutex;
 class ThreadQueue
@@ -53,10 +53,6 @@ int main()
     for (int i = 0; i < NTHREADS; i++)
     {
         sockqueue.push(i);
-    }
-    for (int i = 0; i < NTHREADS; i++)
-    {
-        std::cout << "GOT" << sockqueue.pop() << std::endl;
     }
     for (threadid = 0; threadid < NTHREADS; threadid++)
     {
