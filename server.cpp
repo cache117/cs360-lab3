@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <queue>
 #include <semaphore.h>;
 #include <sys/types.h>
 #include <sys/signal.h>
