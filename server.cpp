@@ -42,6 +42,8 @@ void parseImageFile(int hSocket, char *filePath, size_t size);
 
 void parseTextFile(int hSocket, char *filePath, size_t size);
 
+void parseDirectory(int hSocket, char *filePath);
+
 void sendBadRequest();
 
 void closeSocket(int hSocket);
@@ -106,8 +108,8 @@ int main(int argc, char *argv[])
 
 void initializeThreadedQueue()
 {
-    sem_init(&full, PTHREAD_PROCESS_PRIVATE, 0);
-    sem_init(&empty, PTHREAD_PROCESS_PRIVATE, NQUEUE);
+    sem_init(&work_to_do, PTHREAD_PROCESS_PRIVATE, 0);
+    sem_init(&space_on_q, PTHREAD_PROCESS_PRIVATE, NQUEUE);
     sem_init(&mutex, PTHREAD_PROCESS_PRIVATE, 1);
 }
 
