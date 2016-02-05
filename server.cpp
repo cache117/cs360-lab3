@@ -130,13 +130,14 @@ void parseArguments(int argc, char *argv[])
 
 void setupServer()
 {
+    struct hostent *pHostInfo;   /* holds info about a machine */
     printf("\nStarting server on port %d in startingDirectory %s", nHostPort, startingDirectory);
 
     printf("\nMaking socket");
     /* make a socket */
-    hServerSocket = socket(AF_INET, SOCK_STREAM, 0);
+    hSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (hServerSocket == SOCKET_ERROR)
+    if (hSocket == SOCKET_ERROR)
     {
         printf("\nCould not make a socket\n");
         exit(1);
@@ -150,15 +151,14 @@ void setupServer()
     printf("\nBinding to port %d\n", nHostPort);
 
     /* bind to a port */
-    if (bind(hServerSocket, (struct sockaddr *) &Address, sizeof(Address))
-        == SOCKET_ERROR)
+    if (bind(hSocket, (struct sockaddr *) &Address, sizeof(Address)) == SOCKET_ERROR)
     {
         printf("\nCould not connect to host\n");
         exit(1);
     }
     /*  get port number */
-    getsockname(hServerSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
-    printf("opened socket as fd (%d) on port (%d) for stream i/o\n", hServerSocket, ntohs(Address.sin_port));
+    getsockname(hSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
+    printf("opened socket as fd (%d) on port (%d) for stream i/o\n", hSocket, ntohs(Address.sin_port));
 #ifdef DEBUG
     printf("Server\n\
               sin_family        = %d\n\
@@ -169,7 +169,7 @@ void setupServer()
     printf("\nMaking a listen queue of %d elements", QUEUE_SIZE);
 #endif
     /* establish listen queue */
-    if (listen(hServerSocket, QUEUE_SIZE) == SOCKET_ERROR)
+    if (listen(hSocket, QUEUE_SIZE) == SOCKET_ERROR)
     {
         printf("\nCould not listen\n");
         exit(1);
@@ -185,7 +185,7 @@ void listen()
         int hSocket;
         printf("\nWaiting for a connection\n");
         /* get the connected socket */
-        hSocket = accept(hServerSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
+        hSocket = accept(hSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
         socketQueue.push(hSocket);
     }
 }
