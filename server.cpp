@@ -100,15 +100,15 @@ int main(int argc, char *argv[])
     parseArguments(argc, argv);
     initializeThreadedQueue();
     pthread_t thread[nThreads];
-    long x;
-    for (x = 0; x < nThreads; ++x)
+    long threadID;
+    for (threadID = 0; threadID < nThreads; ++threadID)
     {
-        printf("Creating thread %ld\n", x);
+        printf("Creating thread %ld\n", threadID);
         //pthread_create(&thread[x], NULL, parseRequest, (void *) x);
     }
     setupServer();
     listenForConnection();
-    parseRequest();
+    parseRequest(NULL);
 }
 
 void initializeThreadedQueue()
