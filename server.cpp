@@ -340,12 +340,10 @@ void parseTextFile(int hSocket, char *filePath, size_t size)
     FILE *file;
     file = fopen(filePath, "r");
     char *fileBody;
-    fileBody = (char *) malloc(size);
-    int i = 0;
     int nextCharacter;
     while ((nextCharacter = getc(file)) != EOF)
     {
-        fileBody[i++] = (char) nextCharacter;
+        asprintf(&fileBody, "%s%c", fileBody, (char) nextCharacter);
     }
 #ifdef HEAVY_DEBUG
     printf("File body: %s", fileBody);
