@@ -20,7 +20,7 @@ using namespace std;
 #define BUFFER_SIZE         1000
 #define QUEUE_SIZE          5
 #define NAME_SIZE           255
-#define NQUEUE 20
+#define NQUEUE              20
 
 int hSocket;
 /* handle to socket */
@@ -61,6 +61,8 @@ void sendFileNotFound(int hSocket);
 
 void initializeThreadedQueue();
 
+void listen();
+
 sem_t work_to_do, space_on_q, mutex;
 
 class ThreadedQueue
@@ -98,13 +100,14 @@ int main(int argc, char *argv[])
     parseArguments(argc, argv);
     initializeThreadedQueue();
     pthread_t thread[nThreads];
-    for (long x = 0; x < nThreads; ++x)
+    long x;
+    for (x = 0; x < nThreads; ++x)
     {
-        printf("Creating thread %ld", x);
+        printf("Creating thread %ld\n", x);
         pthread_create(&thread[x], NULL, parseRequest, (void *) x);
     }
     setupServer();
-    parseRequest();
+    listen();
 }
 
 void initializeThreadedQueue()
