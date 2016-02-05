@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 {
 #define DEBUG
 #ifdef DEBUG
-    printf("Starting Server");
+    printf("Starting Server\n");
 #endif
     handleSignals();
     parseArguments(argc, argv);
@@ -204,59 +204,57 @@ void listenForConnection()
 
 void *parseRequest(void *arg)
 {
-    for (; ;)
+    int hSocket = socketQueue.pop();
+    linger lin;
+    unsigned int y = sizeof(lin);
+    lin.l_onoff = 1;
+    lin.l_linger = 10;
+    setsockopt(hSocket, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
+#ifdef DEBUG
+    printf("\nGot a connection from %X (%d)\n",
+           Address.sin_addr.s_addr,
+           ntohs(Address.sin_port));
+#endif
+    char pBuffer[BUFFER_SIZE];
+    int bytesRead = read(hSocket, pBuffer, BUFFER_SIZE);
+#ifdef DEBUG
+    printf("Got from browser %d\n%s\n", bytesRead, pBuffer);
+#endif
+    char requestedFile[NAME_SIZE];
+    sscanf(pBuffer, "GET %s HTTP/1.1", requestedFile);
+    if (requestedFile != NULL)
     {
-        int hSocket = socketQueue.pop();
-        linger lin;
-        unsigned int y = sizeof(lin);
-        lin.l_onoff = 1;
-        lin.l_linger = 10;
-        setsockopt(hSocket, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
 #ifdef DEBUG
-        printf("\nGot a connection from %X (%d)\n",
-               Address.sin_addr.s_addr,
-               ntohs(Address.sin_port));
+        printf("Handling server %s:%s request on thread[%ld]\n", startingDirectory, requestedFile, (long) arg);
 #endif
-        char pBuffer[BUFFER_SIZE];
-        int bytesRead = read(hSocket, pBuffer, BUFFER_SIZE);
+        char *filePath = (char *) malloc(1 + strlen(startingDirectory) + strlen(requestedFile));
+        memset(filePath, 0, sizeof(filePath));
+        strcpy(filePath, startingDirectory);
+        strcat(filePath, requestedFile);
 #ifdef DEBUG
-        printf("Got from browser %d\n%s\n", bytesRead, pBuffer);
+        printf("Requested file: %s\n", requestedFile);
 #endif
-        char requestedFile[NAME_SIZE];
-        sscanf(pBuffer, "GET %s HTTP/1.1", requestedFile);
-        if (requestedFile != NULL)
-        {
-#ifdef DEBUG
-            printf("Handling server %s:%s request on thread[%ld]", startingDirectory, requestedFile, (long) arg);
-#endif
-            char *filePath = (char *) malloc(1 + strlen(startingDirectory) + strlen(requestedFile));
-            memset(filePath, 0, sizeof(filePath));
-            strcpy(filePath, startingDirectory);
-            strcat(filePath, requestedFile);
-#ifdef DEBUG
-            printf("Requested file: %s\n", requestedFile);
-#endif
-            /* analyse given directory */
-            struct stat fileStat;
+        /* analyse given directory */
+        struct stat fileStat;
 
-            if (stat(filePath, &fileStat))
-            {
-                sendFileNotFound(hSocket);
-            }
-            else if (S_ISREG(fileStat.st_mode))
-            {
-                parseGetFile(hSocket, filePath, (size_t) fileStat.st_size);
-            }
-            else if (S_ISDIR(fileStat.st_mode))
-            {
-                parseDirectory(hSocket, filePath);
-            }
-        }
-        else
+        if (stat(filePath, &fileStat))
         {
-            sendBadRequest();
+            sendFileNotFound(hSocket);
+        }
+        else if (S_ISREG(fileStat.st_mode))
+        {
+            parseGetFile(hSocket, filePath, (size_t) fileStat.st_size);
+        }
+        else if (S_ISDIR(fileStat.st_mode))
+        {
+            parseDirectory(hSocket, filePath);
         }
     }
+    else
+    {
+        sendBadRequest();
+    }
+
     return NULL;
 }
 
