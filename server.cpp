@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <semaphore.h>;
+#include <sys/types.h>
+#include <sys/signal.h>
 
 #define SOCKET_ERROR        -1
 #define BUFFER_SIZE         1000
