@@ -196,7 +196,7 @@ void listen()
     }
 }
 
-void *parseRequest()
+void *parseRequest(void *arg)
 {
     for (; ;)
     {
@@ -246,6 +246,7 @@ void *parseRequest()
             sendBadRequest();
         }
     }
+    return NULL;
 }
 
 void parseDirectory(int hSocket, char *filePath)
