@@ -35,7 +35,7 @@ void parseArguments(int argc, char *argv[]);
 
 void setupServer();
 
-void *parseRequest();
+void *parseRequest(void *arg);
 
 void parseGetFile(int hSocket, char *filePath, size_t size);
 
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     for (threadID = 0; threadID < nThreads; ++threadID)
     {
         printf("Creating thread %ld\n", threadID);
-        //pthread_create(&thread[x], NULL, parseRequest, (void *) x);
+        pthread_create(&thread[threadID], NULL, parseRequest, (void *) threadID);
     }
     setupServer();
     listenForConnection();
@@ -270,7 +270,6 @@ void parseDirectory(int hSocket, char *filePath)
             asprintf(&directoryListing, "%s\n<li><a href=\"%s\">%s</a></li>", directoryListing, directoryEntry->d_name,
                      directoryEntry->d_name);
         }
-
     }
     asprintf(&directoryListing, "%s</ul></html>", directoryListing);
     closedir(directory);
@@ -440,5 +439,5 @@ void handleSignals()
 
 void signalHandler(int status)
 {
-    printf("received signal %d\n", status);
+    printf("rReceived signal: %d\n", status);
 }
