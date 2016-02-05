@@ -59,7 +59,7 @@ void sendBadRequest(int hSocket);
 
 void sendFileNotFound(int hSocket);
 
-void initializeThreadedQueue();
+void initializeThreadQueue();
 
 void listenForConnection();
 
@@ -89,28 +89,31 @@ public:
 
         return front;
     }
-
 } socketQueue;
 
 int main(int argc, char *argv[])
 {
 #define DEBUG
+#ifdef DEBUG
     printf("Starting Server");
+#endif
     handleSignals();
     parseArguments(argc, argv);
-    initializeThreadedQueue();
+    initializeThreadQueue();
     pthread_t thread[nThreads];
     long threadID;
     for (threadID = 0; threadID < nThreads; ++threadID)
     {
-        printf("Creating thread %ld\n", threadID);
+#ifdef DEBUG
+        printf("Creating thread: %ld\n", threadID);
+#endif
         pthread_create(&thread[threadID], NULL, parseRequest, (void *) threadID);
     }
     setupServer();
     listenForConnection();
 }
 
-void initializeThreadedQueue()
+void initializeThreadQueue()
 {
     sem_init(&workToDo, PTHREAD_PROCESS_PRIVATE, 0);
     sem_init(&spaceOnQueue, PTHREAD_PROCESS_PRIVATE, NQUEUE);
@@ -137,12 +140,13 @@ void parseArguments(int argc, char *argv[])
 void setupServer()
 {
     struct hostent *pHostInfo;   /* holds info about a machine */
+#ifdef DEBUG
     printf("\nStarting server on port %d in startingDirectory %s", nHostPort, startingDirectory);
 
     printf("\nMaking socket");
+#endif
     /* make a socket */
     hSocket = socket(AF_INET, SOCK_STREAM, 0);
-
     if (hSocket == SOCKET_ERROR)
     {
         printf("\nCould not make a socket\n");
@@ -153,9 +157,9 @@ void setupServer()
     Address.sin_addr.s_addr = INADDR_ANY;
     Address.sin_port = htons(nHostPort);
     Address.sin_family = AF_INET;
-
+#ifdef DEBUG
     printf("\nBinding to port %d\n", nHostPort);
-
+#endif
     /* bind to a port */
     if (bind(hSocket, (struct sockaddr *) &Address, sizeof(Address)) == SOCKET_ERROR)
     {
@@ -164,8 +168,8 @@ void setupServer()
     }
     /*  get port number */
     getsockname(hSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
-    printf("opened socket as fd (%d) on port (%d) for stream i/o\n", hSocket, ntohs(Address.sin_port));
 #ifdef DEBUG
+    printf("opened socket as fd (%d) on port (%d) for stream i/o\n", hSocket, ntohs(Address.sin_port));
     printf("Server\n\
               sin_family        = %d\n\
               sin_addr.s_addr   = %d\n\
@@ -189,7 +193,9 @@ void listenForConnection()
     for (; ;)
     {
         int hSocket;
+#ifdef DEBUG
         printf("\nWaiting for a connection\n");
+#endif
         /* get the connected socket */
         hSocket = accept(hSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
         socketQueue.push(hSocket);
@@ -213,18 +219,23 @@ void *parseRequest(void *arg)
 #endif
         char pBuffer[BUFFER_SIZE];
         int bytesRead = read(hSocket, pBuffer, BUFFER_SIZE);
+#ifdef DEBUG
         printf("Got from browser %d\n%s\n", bytesRead, pBuffer);
+#endif
         char requestedFile[NAME_SIZE];
         sscanf(pBuffer, "GET %s HTTP/1.1", requestedFile);
         if (requestedFile != NULL)
         {
+#ifdef DEBUG
+            printf("Handling server %s:%s request on thread[%ld]", startingDirectory, requestedFile, (long) arg);
+#endif
             char *filePath = (char *) malloc(1 + strlen(startingDirectory) + strlen(requestedFile));
             memset(filePath, 0, sizeof(filePath));
             strcpy(filePath, startingDirectory);
             strcat(filePath, requestedFile);
-
+#ifdef DEBUG
             printf("Requested file: %s\n", requestedFile);
-
+#endif
             /* analyse given directory */
             struct stat fileStat;
 
@@ -251,7 +262,9 @@ void *parseRequest(void *arg)
 
 void parseDirectory(int hSocket, char *filePath)
 {
+#ifdef DEBUG
     printf("%s is a directory \n", filePath);
+#endif
     DIR *directory;
     struct dirent *directoryEntry;
     char *directoryListing;
@@ -272,14 +285,16 @@ void parseDirectory(int hSocket, char *filePath)
         }
     }
     asprintf(&directoryListing, "%s</ul></html>", directoryListing);
-    closedir(directory);
+    (void) closedir(directory);
     if (indexFileFound)
     {
-        printf("Printing index.html file");
+#ifdef DEBUG
+        printf("Printing index.html file\n");
+#endif
         char *indexFilePath;
         asprintf(&indexFilePath, "%s/%s", filePath, "index.html");
-        struct stat fileStat;
 
+        struct stat fileStat;
         stat(filePath, &fileStat);
         parseTextFile(hSocket, indexFilePath, (size_t) fileStat.st_size);
     }
@@ -289,12 +304,9 @@ void parseDirectory(int hSocket, char *filePath)
         asprintf(&response, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n%s", directoryListing);
         write(hSocket, response, strlen(response));
 
-        // Free memory, close directory
+        // Free memory
         free(directoryListing);
-        (void) closedir(directory);
     }
-
-
 }
 
 void parseGetFile(int hSocket, char *filePath, size_t size)
@@ -337,7 +349,9 @@ void parseTextFile(int hSocket, char *filePath, size_t size)
     {
         fileBody[i++] = (char) nextCharacter;
     }
+#ifdef HEAVY_DEBUG
     printf("File body: %s", fileBody);
+#endif
     char *response;
     asprintf(&response, "HTTP/1.1 200 OK\r\n%s\r\n\r\n%s", headers, fileBody);
     fclose(file);
@@ -375,6 +389,7 @@ void parseImageFile(int hSocket, char *filePath, size_t size)
     if (!image)
     {
         fprintf(stderr, "Unable to open file %s", filePath);
+        exit(1);
     }
 
     int readValue = fread(imageBody, 1, size, image);

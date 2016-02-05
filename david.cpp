@@ -11,24 +11,24 @@
 #include <sys/stat.h>
 #include <sys/signal.h>
 #include <iostream>
-#include "utils.cpp"
+//#include "utils.cpp"
 #include <pthread.h>
 #include <queue>
 #include <semaphore.h>
 //#include <utils.h>
 using namespace std;
 
-#define NTHREADS 10
+int NTHREADS;
 #define NQUEUE 20
-sem_t full, empty, mutex;
+sem_t work_to_do, space_on_q, mutex;
 
 class Myqueue{
-    std::queue<int> queue;
+    std::queue<int> stlqueue;
 public:
     void push(int sock){
         sem_wait(&space_on_q);
         sem_wait(&mutex);
-        queue.push(sock);
+        stlqueue.push(sock);
 
         sem_post(&mutex);
         sem_post(&work_to_do);
@@ -36,8 +36,8 @@ public:
     int pop(){
         sem_wait(&work_to_do);
         sem_wait(&mutex);
-        int rval = queue.front();
-        queue.pop();
+        int rval = stlqueue.front();
+        stlqueue.pop();
 
         sem_post(&mutex);
         sem_post(&space_on_q);
@@ -45,7 +45,7 @@ public:
         return rval;
     }
 
-} socketQueue;
+} sockqueue;
 
 
 
@@ -54,7 +54,7 @@ void signalHandler (int status);   /* definition of signal handler */
 void handleSignals();
 
 #define SOCKET_ERROR        -1
-#define BUFFER_SIZE         100000000
+#define BUFFER_SIZE         100000
 #define QUEUE_SIZE          5
 //#define DEBUG             FALSE
 char *substring(char *string, int position, int length);
@@ -67,7 +67,8 @@ void sendFileNotFound(int hSocket);
 void sendBadRequest(int hSocket);
 void parseArgs(int argc, char* argv[]);
 void listen();
-void *parseRequest(void * arg);
+
+void *parseRequest(void *args);
 void initializeSockQueue();
 void configureServer();
 int hServerSocket;  /* handle to socket */
@@ -80,7 +81,7 @@ int nAddressSize=sizeof(struct sockaddr_in);
 
 int main(int argc, char* argv[])
 {
-#define DEBUG
+#undef DEBUG
     handleSignals();
     parseArgs(argc, argv);
     initializeSockQueue();
@@ -89,7 +90,7 @@ int main(int argc, char* argv[])
     long x;
     for (x = 0; x < NTHREADS; x++){
         printf("Creating thread number %ld\n", x);
-        pthread_create(&thread[x], NULL, parseRequest, (void*) x);
+        pthread_create(&thread[x], NULL, parseRequest, (void *) x);
     }
     configureServer();
     listen();
@@ -97,8 +98,8 @@ int main(int argc, char* argv[])
 }
 void initializeSockQueue()
 {
-    sem_init(&full, PTHREAD_PROCESS_PRIVATE, 0);
-    sem_init(&empty, PTHREAD_PROCESS_PRIVATE, NQUEUE);
+    sem_init(&work_to_do, PTHREAD_PROCESS_PRIVATE, 0);
+    sem_init(&space_on_q, PTHREAD_PROCESS_PRIVATE, NQUEUE);
     sem_init(&mutex, PTHREAD_PROCESS_PRIVATE, 1);
 }
 void configureServer()
@@ -135,10 +136,10 @@ void configureServer()
           sin_family        = %d\n\
           sin_addr.s_addr   = %d\n\
           sin_port          = %d\n"
-            , Address.sin_family
-            , Address.sin_addr.s_addr
-            , ntohs(Address.sin_port)
-    );
+          , Address.sin_family
+          , Address.sin_addr.s_addr
+          , ntohs(Address.sin_port)
+        );
 
 
     printf("\nMaking a listen queue of %d elements",QUEUE_SIZE);
@@ -161,56 +162,54 @@ void listen()
         printf("\nWaiting for a connection\n");
         /* get the connected socket */
         hSocket=accept(hServerSocket,(struct sockaddr*)&Address,(socklen_t *)&nAddressSize);
-        socketQueue.push(hSocket);
+        sockqueue.push(hSocket);
         //parseRequest(hSocket);
     }
 }
 
-void *parseRequest(void * arg){
-    for(;;)
-    {
-
-        int hSocket = socketQueue.pop();
-        linger lin;
-        unsigned int y=sizeof(lin);
-        lin.l_onoff=1;
-        lin.l_linger=10;
-        setsockopt(hSocket,SOL_SOCKET, SO_LINGER,&lin,sizeof(lin));
+void *parseRequest(void *args)
+{
+    int hSocket = sockqueue.pop();
+    linger lin;
+    unsigned int y = sizeof(lin);
+    lin.l_onoff = 1;
+    lin.l_linger = 10;
+    setsockopt(hSocket, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
 #ifdef DEBUG
-        printf("\nGot a connection from %X (%d)\n",
-               Address.sin_addr.s_addr,
-               ntohs(Address.sin_port));
+    printf("\nGot a connection from %X (%d)\n",
+              Address.sin_addr.s_addr,
+              ntohs(Address.sin_port));
 #endif
 
-        /* read from socket into buffer */
-        char pBuffer[BUFFER_SIZE];
-        memset(pBuffer,0,sizeof(pBuffer));
-        read(hSocket,pBuffer,BUFFER_SIZE);
+    /* read from socket into buffer */
+    char pBuffer[BUFFER_SIZE];
+    memset(pBuffer, 0, sizeof(pBuffer));
+    read(hSocket, pBuffer, BUFFER_SIZE);
 
-        char** request;
-        request = str_split(pBuffer, ' ');
-        if(request[0] != NULL && strstr(request[0], "GET") != NULL)
+    char **request;
+    request = str_split(pBuffer, ' ');
+    if (request[0] != NULL && strstr(request[0], "GET") != NULL)
+    {
+        printf("Handling server %s:%s request on thread %d\n", request[0], request[1], (long) args);
+        //     GET / http/1.1 host: address
+        char *context = (char *) malloc(1 + strlen(directory) + strlen(request[1]));
+        //strcpy(context, ".");
+        memset(context, 0, sizeof(context));
+        strcpy(context, directory);
+        strcat(context, request[1]);
+        struct stat filestat;
+        if (stat(context, &filestat))
         {
-            //     GET / http/1.1 host: address
-            char *context = (char *) malloc(1 + strlen(directory) + strlen(request[1]) );
-            //strcpy(context, ".");
-            memset(context,0,sizeof(context));
-            strcpy(context, directory);
-            strcat(context, request[1]);
-            struct stat filestat;
-            if(stat(context, &filestat))
-            {
-                sendFileNotFound(hSocket);
-            }
-            else
-            {
-                parseGetRequest(hSocket, filestat, context, request);
-            }
+            sendFileNotFound(hSocket);
         }
         else
         {
-            sendBadRequest(hSocket);
+            parseGetRequest(hSocket, filestat, context, request);
         }
+    }
+    else
+    {
+        sendBadRequest(hSocket);
     }
 }
 
@@ -358,7 +357,7 @@ void getHtml(int hSocket,char* context, size_t size)
         body[i]=c;
         i++;
     }
-    printf("This is the body: %s\n", body);
+    //printf("This is the body: %s\n", body);
     char *response;
     asprintf(&response, "HTTP/1.1 200 OK\r\n%s\r\n\r\n%s", headers, body);
     fclose(file);
@@ -428,17 +427,17 @@ void getImage(int hSocket,char* context, size_t size)
 void parseArgs(int argc, char* argv[])
 {
     /*Parse the process arguments*/
-    if(argc < 2)
+    printf("%d", argc);
+    if (argc < 4)
     {
-        printf("\nUsage: server host-port directory\n");
+        printf("\nUsage: server host-port numThreads directory\n");
         exit(1);
     }
     else
     {
         nHostPort=atoi(argv[1]);
-        directory=(char *) malloc(1 + strlen(argv[2]));
-        memset(directory,0,sizeof(directory));
-        strcpy(directory,argv[2]);
+        NTHREADS = atoi(argv[2]);
+        asprintf(&directory, "%s", argv[3]);
     }
 }
 char *substring(char *string, int position, int length)
