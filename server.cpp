@@ -229,10 +229,8 @@ void *parseRequest(void *arg)
 #ifdef DEBUG
             printf("Handling server GET %s request on thread %ld\n", requestedFile, (long) arg);
 #endif
-            char *filePath = (char *) malloc(1 + strlen(startingDirectory) + strlen(requestedFile));
-            memset(filePath, 0, sizeof(filePath));
-            strcpy(filePath, startingDirectory);
-            strcat(filePath, requestedFile);
+            char *filePath;
+            asprintf(&filePath, "%s%s", startingDirectory, requestedFile);
 #ifdef DEBUG
             printf("Requested file: %s\n", requestedFile);
 #endif
