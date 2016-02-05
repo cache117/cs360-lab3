@@ -61,9 +61,9 @@ void sendFileNotFound(int hSocket);
 
 void initializeThreadedQueue();
 
-void listen();
+void listenForConnection();
 
-sem_t work_to_do, space_on_q, mutex;
+sem_t workToDo, spaceOnQueue, mutex;
 
 class ThreadedQueue
 {
@@ -71,21 +71,21 @@ class ThreadedQueue
 public:
     void push(int sock)
     {
-        sem_wait(&space_on_q);
+        sem_wait(&spaceOnQueue);
         sem_wait(&mutex);
         threadedQueue.push(sock);
         sem_post(&mutex);
-        sem_post(&work_to_do);
+        sem_post(&workToDo);
     }
 
     int pop()
     {
-        sem_wait(&work_to_do);
+        sem_wait(&workToDo);
         sem_wait(&mutex);
         int front = threadedQueue.front();
         threadedQueue.pop();
         sem_post(&mutex);
-        sem_post(&space_on_q);
+        sem_post(&spaceOnQueue);
 
         return front;
     }
@@ -107,13 +107,13 @@ int main(int argc, char *argv[])
         pthread_create(&thread[x], NULL, parseRequest, (void *) x);
     }
     setupServer();
-    listen();
+    listenForConnection();
 }
 
 void initializeThreadedQueue()
 {
-    sem_init(&work_to_do, PTHREAD_PROCESS_PRIVATE, 0);
-    sem_init(&space_on_q, PTHREAD_PROCESS_PRIVATE, NQUEUE);
+    sem_init(&workToDo, PTHREAD_PROCESS_PRIVATE, 0);
+    sem_init(&spaceOnQueue, PTHREAD_PROCESS_PRIVATE, NQUEUE);
     sem_init(&mutex, PTHREAD_PROCESS_PRIVATE, 1);
 }
 
@@ -172,19 +172,19 @@ void setupServer()
               sin_port          = %d\n", Address.sin_family, (int) Address.sin_addr.s_addr, ntohs(Address.sin_port)
     );
 
-    printf("\nMaking a listen queue of %d elements", QUEUE_SIZE);
+    printf("\nMaking a listenForConnection queue of %d elements", QUEUE_SIZE);
 #endif
     /* establish listen queue */
-    if (listen(hSocket, QUEUE_SIZE) == SOCKET_ERROR)
+    if (listenForConnection(hSocket, QUEUE_SIZE) == SOCKET_ERROR)
     {
-        printf("\nCould not listen\n");
+        printf("\nCould not listenForConnection\n");
         exit(1);
     }
     int optval = 1;
     setsockopt(hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
-void listen()
+void listenForConnection()
 {
     for (; ;)
     {
