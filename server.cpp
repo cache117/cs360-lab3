@@ -10,7 +10,7 @@
 #include <dirent.h>
 #include <queue>
 #include <pthread.h>
-#include <semaphore.h>;
+#include <semaphore.h>
 #include <sys/types.h>
 #include <sys/signal.h>
 
