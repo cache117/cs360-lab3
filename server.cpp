@@ -176,7 +176,7 @@ void setupServer()
     printf("\nMaking a listenForConnection queue of %d elements", QUEUE_SIZE);
 #endif
     /* establish listen queue */
-    if (listenForConnection(hSocket, QUEUE_SIZE) == SOCKET_ERROR)
+    if (listen(hSocket, QUEUE_SIZE) == SOCKET_ERROR)
     {
         printf("\nCould not listenForConnection\n");
         exit(1);
