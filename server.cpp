@@ -54,13 +54,13 @@ sem_t work_to_do, space_on_q, mutex;
 
 class ThreadedQueue
 {
-    std::queue<int> queue;
+    std::queue<int> threadedQueue;
 public:
     void push(int sock)
     {
         sem_wait(&space_on_q);
         sem_wait(&mutex);
-        queue.push(sock);
+        threadedQueue.push(sock);
         sem_post(&mutex);
         sem_post(&work_to_do);
     }
@@ -69,8 +69,8 @@ public:
     {
         sem_wait(&work_to_do);
         sem_wait(&mutex);
-        int front = queue.front();
-        queue.pop();
+        int front = threadedQueue.front();
+        threadedQueue.pop();
         sem_post(&mutex);
         sem_post(&space_on_q);
 
