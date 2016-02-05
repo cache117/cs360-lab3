@@ -13,6 +13,7 @@
 #include <iostream>
 #include <pthread.h>
 #include <semaphore.h>
+#include <winsock.h>
 
 using namespace std;
 
@@ -197,7 +198,7 @@ void listenForConnection()
         printf("\nWaiting for a connection\n");
 #endif
         /* get the connected socket */
-        hSocket = accept(hSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
+        hSocket = accept(hServerSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
         socketQueue.push(hSocket);
     }
 }
