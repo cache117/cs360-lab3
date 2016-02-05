@@ -108,7 +108,6 @@ int main(int argc, char *argv[])
     }
     setupServer();
     listenForConnection();
-    parseRequest(NULL);
 }
 
 void initializeThreadedQueue()
