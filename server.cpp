@@ -49,6 +49,8 @@ void handleSignals();
 
 void initializeThreadedQueue();
 
+sem_t work_to_do, space_on_q, mutex;
+
 class ThreadedQueue
 {
     std::queue<int> queue;
@@ -75,8 +77,6 @@ public:
     }
 
 } socketQueue;
-
-sem_t full, empty, mutex;
 
 int main(int argc, char *argv[])
 {
