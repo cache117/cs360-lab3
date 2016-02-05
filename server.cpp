@@ -22,7 +22,7 @@ using namespace std;
 #define NAME_SIZE           255
 #define NQUEUE              20
 
-int hSocket;
+int hServerSocket;
 /* handle to socket */
 struct sockaddr_in Address;
 /* Internet socket address stuct */
@@ -146,8 +146,8 @@ void setupServer()
     printf("\nMaking socket");
 #endif
     /* make a socket */
-    hSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (hSocket == SOCKET_ERROR)
+    hServerSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (hServerSocket == SOCKET_ERROR)
     {
         printf("\nCould not make a socket\n");
         exit(1);
@@ -161,15 +161,15 @@ void setupServer()
     printf("\nBinding to port %d\n", nHostPort);
 #endif
     /* bind to a port */
-    if (bind(hSocket, (struct sockaddr *) &Address, sizeof(Address)) == SOCKET_ERROR)
+    if (bind(hServerSocket, (struct sockaddr *) &Address, sizeof(Address)) == SOCKET_ERROR)
     {
         printf("\nCould not connect to host\n");
         exit(1);
     }
     /*  get port number */
-    getsockname(hSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
+    getsockname(hServerSocket, (struct sockaddr *) &Address, (socklen_t * ) & nAddressSize);
 #ifdef DEBUG
-    printf("opened socket as fd (%d) on port (%d) for stream i/o\n", hSocket, ntohs(Address.sin_port));
+    printf("opened socket as fd (%d) on port (%d) for stream i/o\n", hServerSocket, ntohs(Address.sin_port));
     printf("Server\n\
               sin_family        = %d\n\
               sin_addr.s_addr   = %d\n\
@@ -179,13 +179,13 @@ void setupServer()
     printf("\nMaking a listenForConnection queue of %d elements", QUEUE_SIZE);
 #endif
     /* establish listen queue */
-    if (listen(hSocket, QUEUE_SIZE) == SOCKET_ERROR)
+    if (listen(hServerSocket, QUEUE_SIZE) == SOCKET_ERROR)
     {
         printf("\nCould not listenForConnection\n");
         exit(1);
     }
     int optval = 1;
-    setsockopt(hSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+    setsockopt(hServerSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 
 void listenForConnection()
@@ -204,58 +204,60 @@ void listenForConnection()
 
 void *parseRequest(void *arg)
 {
-    int hSocket = socketQueue.pop();
-    linger lin;
-    unsigned int y = sizeof(lin);
-    lin.l_onoff = 1;
-    lin.l_linger = 10;
-    setsockopt(hSocket, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
-#ifdef DEBUG
-    printf("\nGot a connection from %X (%d)\n",
-           Address.sin_addr.s_addr,
-           ntohs(Address.sin_port));
-#endif
-    char pBuffer[BUFFER_SIZE];
-    int bytesRead = read(hSocket, pBuffer, BUFFER_SIZE);
-#ifdef DEBUG
-    printf("Got from browser %d\n%s\n", bytesRead, pBuffer);
-#endif
-    char requestedFile[NAME_SIZE];
-    sscanf(pBuffer, "GET %s HTTP/1.1", requestedFile);
-    if (requestedFile != NULL)
+    for (; ;)
     {
+        int hSocket = socketQueue.pop();
+        linger lin;
+        unsigned int y = sizeof(lin);
+        lin.l_onoff = 1;
+        lin.l_linger = 10;
+        setsockopt(hSocket, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
 #ifdef DEBUG
-        printf("Handling server %s:%s request on thread[%ld]\n", startingDirectory, requestedFile, (long) arg);
+        printf("\nGot a connection from %X (%d)\n",
+               Address.sin_addr.s_addr,
+               ntohs(Address.sin_port));
 #endif
-        char *filePath = (char *) malloc(1 + strlen(startingDirectory) + strlen(requestedFile));
-        memset(filePath, 0, sizeof(filePath));
-        strcpy(filePath, startingDirectory);
-        strcat(filePath, requestedFile);
+        char pBuffer[BUFFER_SIZE];
+        int bytesRead = read(hSocket, pBuffer, BUFFER_SIZE);
 #ifdef DEBUG
-        printf("Requested file: %s\n", requestedFile);
+        printf("Got from browser %d\n%s\n", bytesRead, pBuffer);
 #endif
-        /* analyse given directory */
-        struct stat fileStat;
+        char requestedFile[NAME_SIZE];
+        sscanf(pBuffer, "GET %s HTTP/1.1", requestedFile);
+        if (requestedFile != NULL)
+        {
+#ifdef DEBUG
+            printf("Handling server GET %s request on thread %ld\n", requestedFile, (long) arg);
+#endif
+            char *filePath = (char *) malloc(1 + strlen(startingDirectory) + strlen(requestedFile));
+            memset(filePath, 0, sizeof(filePath));
+            strcpy(filePath, startingDirectory);
+            strcat(filePath, requestedFile);
+#ifdef DEBUG
+            printf("Requested file: %s\n", requestedFile);
+#endif
+            /* analyse given directory */
+            struct stat fileStat;
 
-        if (stat(filePath, &fileStat))
-        {
-            sendFileNotFound(hSocket);
+            if (stat(filePath, &fileStat))
+            {
+                sendFileNotFound(hSocket);
+            }
+            else if (S_ISREG(fileStat.st_mode))
+            {
+                parseGetFile(hSocket, filePath, (size_t) fileStat.st_size);
+            }
+            else if (S_ISDIR(fileStat.st_mode))
+            {
+                parseDirectory(hSocket, filePath);
+            }
         }
-        else if (S_ISREG(fileStat.st_mode))
+        else
         {
-            parseGetFile(hSocket, filePath, (size_t) fileStat.st_size);
-        }
-        else if (S_ISDIR(fileStat.st_mode))
-        {
-            parseDirectory(hSocket, filePath);
+            sendBadRequest();
         }
     }
-    else
-    {
-        sendBadRequest();
-    }
 
-    return NULL;
 }
 
 void parseDirectory(int hSocket, char *filePath)
@@ -287,7 +289,7 @@ void parseDirectory(int hSocket, char *filePath)
     if (indexFileFound)
     {
 #ifdef DEBUG
-        printf("Printing index.html file\n");
+        printf("\nPrinting index.html file\n");
 #endif
         char *indexFilePath;
         asprintf(&indexFilePath, "%s/%s", filePath, "index.html");
@@ -427,8 +429,7 @@ void sendBadRequest(int hSocket)
     printf("ERROR with file: %s\n", filePath);
     char *response;
     asprintf(&response, "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\n\r\n<html>"
-            "<h1>400 Bad request</h1>"
-            "The page '%s' could not be found on this server.\n</html>", filePath);
+            "<h1>400 Bad request</h1></html>");
     write(hSocket, response, sizeof(response));
     closeSocket(hSocket);
 }

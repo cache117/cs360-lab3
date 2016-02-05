@@ -169,47 +169,50 @@ void listen()
 
 void *parseRequest(void *args)
 {
-    int hSocket = sockqueue.pop();
-    linger lin;
-    unsigned int y = sizeof(lin);
-    lin.l_onoff = 1;
-    lin.l_linger = 10;
-    setsockopt(hSocket, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
+    for (; ;)
+    {
+        int hSocket = sockqueue.pop();
+        linger lin;
+        unsigned int y = sizeof(lin);
+        lin.l_onoff = 1;
+        lin.l_linger = 10;
+        setsockopt(hSocket, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
 #ifdef DEBUG
-    printf("\nGot a connection from %X (%d)\n",
+        printf("\nGot a connection from %X (%d)\n",
               Address.sin_addr.s_addr,
               ntohs(Address.sin_port));
 #endif
 
-    /* read from socket into buffer */
-    char pBuffer[BUFFER_SIZE];
-    memset(pBuffer, 0, sizeof(pBuffer));
-    read(hSocket, pBuffer, BUFFER_SIZE);
+        /* read from socket into buffer */
+        char pBuffer[BUFFER_SIZE];
+        memset(pBuffer, 0, sizeof(pBuffer));
+        read(hSocket, pBuffer, BUFFER_SIZE);
 
-    char **request;
-    request = str_split(pBuffer, ' ');
-    if (request[0] != NULL && strstr(request[0], "GET") != NULL)
-    {
-        printf("Handling server %s:%s request on thread %d\n", request[0], request[1], (long) args);
-        //     GET / http/1.1 host: address
-        char *context = (char *) malloc(1 + strlen(directory) + strlen(request[1]));
-        //strcpy(context, ".");
-        memset(context, 0, sizeof(context));
-        strcpy(context, directory);
-        strcat(context, request[1]);
-        struct stat filestat;
-        if (stat(context, &filestat))
+        char **request;
+        request = str_split(pBuffer, ' ');
+        if (request[0] != NULL && strstr(request[0], "GET") != NULL)
         {
-            sendFileNotFound(hSocket);
+            printf("Handling server %s:%s request on thread %d\n", request[0], request[1], (long) args);
+            //     GET / http/1.1 host: address
+            char *context = (char *) malloc(1 + strlen(directory) + strlen(request[1]));
+            //strcpy(context, ".");
+            memset(context, 0, sizeof(context));
+            strcpy(context, directory);
+            strcat(context, request[1]);
+            struct stat filestat;
+            if (stat(context, &filestat))
+            {
+                sendFileNotFound(hSocket);
+            }
+            else
+            {
+                parseGetRequest(hSocket, filestat, context, request);
+            }
         }
         else
         {
-            parseGetRequest(hSocket, filestat, context, request);
+            sendBadRequest(hSocket);
         }
-    }
-    else
-    {
-        sendBadRequest(hSocket);
     }
 }
 
