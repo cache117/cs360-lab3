@@ -16,6 +16,7 @@
 #define BUFFER_SIZE         1000
 #define QUEUE_SIZE          5
 #define NAME_SIZE           255
+#define NQUEUE 20
 
 int hSocket, hServerSocket;
 /* handle to socket */
@@ -104,15 +105,16 @@ void initializeThreadedQueue()
 
 void parseArguments(int argc, char *argv[])
 {
-    if (argc < 3)
+    if (argc < 4)
     {
-        printf("\nUsage: server host-port startingDirectory\n");
+        printf("\nUsage: server host-port number-of-threads starting-directory\n");
         exit(1);
     }
     else
     {
         nHostPort = atoi(argv[1]);
-        strcpy(startingDirectory, argv[2]);
+        nThreads = atoi(argv[2]);
+        strcpy(startingDirectory, argv[3]);
         memset(filePath, 0, sizeof(filePath));
         strcpy(filePath, startingDirectory);
     }
