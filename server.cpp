@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     for (x = 0; x < nThreads; ++x)
     {
         printf("Creating thread %ld\n", x);
-        pthread_create(&thread[x], NULL, parseRequest, (void *) x);
+        //pthread_create(&thread[x], NULL, parseRequest, (void *) x);
     }
     setupServer();
     listenForConnection();
