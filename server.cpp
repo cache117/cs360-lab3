@@ -280,7 +280,7 @@ void parseDirectory(int hSocket, char *filePath)
     else
     {
         char *response;
-        asprintf(response, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n%s", directoryListing);
+        asprintf(&response, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n%s", directoryListing);
         write(hSocket, response, strlen(response));
 
         // Free memory, close directory
