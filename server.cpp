@@ -19,14 +19,11 @@
 #define NAME_SIZE           255
 #define NQUEUE 20
 
-int hSocket, hServerSocket;
+int hSocket;
 /* handle to socket */
-struct hostent *pHostInfo;
-/* holds info about a machine */
 struct sockaddr_in Address;
 /* Internet socket address stuct */
 int nAddressSize = sizeof(struct sockaddr_in);
-char pBuffer[BUFFER_SIZE];
 int nHostPort, nThreads;
 char startingDirectory[NAME_SIZE];
 char filePath[NAME_SIZE];
@@ -282,15 +279,16 @@ void parseDirectory(int hSocket, char *filePath)
     }
     else
     {
-        asprintf(pBuffer, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n%s", directoryListing);
+        char *response;
+        asprintf(response, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n%s", directoryListing);
+        write(hSocket, response, strlen(response));
+
+        // Free memory, close directory
+        free(directoryListing);
+        (void) closedir(directory);
     }
-    char *response;
 
 
-    write(hSocket, pBuffer, strlen(pBuffer));
-    // Free memory, close directory
-    free(directoryListing);
-    (void) closedir(directory);
 }
 
 void parseGetFile(int hSocket, char *filePath, size_t size)
@@ -401,7 +399,7 @@ void sendFileNotFound(int hSocket)
     asprintf(&response, "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<html>"
             "<h1>404 Not Found</h1>"
             "The page '%s' could not be found on this server.\n</html>", filePath);
-    write(hSocket, pBuffer, strlen(pBuffer));
+    write(hSocket, response, strlen(response));
     closeSocket(hSocket);
 }
 
