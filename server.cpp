@@ -3,15 +3,18 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/signal.h>
 #include <dirent.h>
 #include <queue>
+#include <iostream>
 #include <pthread.h>
 #include <semaphore.h>
-#include <sys/signal.h>
+
+using namespace std;
 
 #define SOCKET_ERROR        -1
 #define BUFFER_SIZE         1000
