@@ -13,7 +13,6 @@
 #include <iostream>
 #include <pthread.h>
 #include <semaphore.h>
-#include <winsock.h>
 
 using namespace std;
 
