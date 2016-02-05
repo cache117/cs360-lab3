@@ -50,6 +50,12 @@ void signalHandler(int status);
 
 void handleSignals();
 
+void closeSocket(int hSocket);
+
+void sendBadRequest(int hSocket);
+
+void sendFileNotFound(int hSocket);
+
 void initializeThreadedQueue();
 
 sem_t work_to_do, space_on_q, mutex;
