@@ -11,7 +11,6 @@
 #include <queue>
 #include <pthread.h>
 #include <semaphore.h>
-#include <sys/types.h>
 #include <sys/signal.h>
 
 #define SOCKET_ERROR        -1
@@ -37,6 +36,8 @@ void parseArguments(int argc, char *argv[]);
 void setupServer();
 
 void *parseRequest();
+
+void parseGetFile(int hSocket, char *filePath, size_t size);
 
 void parseImageFile(int hSocket, char *filePath, size_t size);
 
